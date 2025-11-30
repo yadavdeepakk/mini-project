@@ -1,13 +1,18 @@
 require('dotenv').config();
+console.log('JWT_SECRET present?', !!process.env.JWT_SECRET);
 const express = require('express');
 const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
+
+
+app.use(cors());
 
 // Rate limiting to prevent abuse
 const limiter = rateLimit({
@@ -18,9 +23,47 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+async function connectDB() {
+  const uri = process.env.MONGODB_URI;
+
+  if (uri && !uri.includes('YOUR_MONGODB_CONNECTION_STRING')) {
+    // Use provided connection string
+    try {
+      await mongoose.connect(uri);
+      console.log('MongoDB connected (from MONGODB_URI)');
+      return;
+    } catch (err) {
+      console.error('MongoDB connection error (MONGODB_URI):', err);
+      // Fallthrough to memory server
+    }
+  }
+
+  // Fallback: start an in-memory MongoDB for local development / testing
+  try {
+    const { MongoMemoryServer } = require('mongodb-memory-server');
+    const mongod = await MongoMemoryServer.create();
+    const memUri = mongod.getUri();
+    await mongoose.connect(memUri);
+    console.log('MongoDB connected (in-memory fallback)');
+
+    // Ensure mongod stops when process exits
+    const cleanup = async () => {
+      try {
+        await mongoose.disconnect();
+        await mongod.stop();
+      } catch (e) {
+        console.error('Error stopping in-memory mongo', e);
+      }
+      process.exit();
+    };
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+  } catch (err) {
+    console.error('Failed to start in-memory MongoDB fallback:', err);
+  }
+}
+
+connectDB();
 
 const authRoutes = require('./routes/authRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');

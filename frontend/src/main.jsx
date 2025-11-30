@@ -10,6 +10,8 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import DoctorDashboard from './pages/DoctorDashboard';
+import PatientDashboard from './pages/PatientDashboard.jsx';
+import FamilyDashboard from './pages/FamilyDashboard.jsx'
 
 // Import protected route component
 import ProtectedRoute from './components/ProtectedRoute';
@@ -39,13 +41,13 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute allowedRoles={['patient']} />,
         children: [
-          // { path: 'patient-dashboard', element: <PatientDashboard /> },
+          { path: 'patient-dashboard', element: <PatientDashboard /> },
         ],
       },
       {
         element: <ProtectedRoute allowedRoles={['family']} />,
         children: [
-          // { path: 'family-dashboard', element: <FamilyDashboard /> },
+          { path: 'family-dashboard', element: <FamilyDashboard /> },
         ],
       },
     ],
